@@ -27,10 +27,10 @@ ElectronとReactを使用して構築されており、ユーザーごとに独�
 
 ## インストール
 
-1.  リポジトリをクローンします。
+1.  リポジトリをクローンし、作成されたディレクトリに移動します。
     ```bash
     git clone <repository-url>
-    cd gemini-desktop-multi-user
+    cd <cloned-directory>
     ```
 
 2.  依存関係をインストールします。
