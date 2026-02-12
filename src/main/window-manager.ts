@@ -61,7 +61,7 @@ function updateLayout() {
 
   // Sidebar width - must match the CSS width of the sidebar
   const sidebarWidth = 250;
-  const contentWidth = contentBounds.width - sidebarWidth;
+  const contentWidth = Math.max(0, contentBounds.width - sidebarWidth);
   const height = contentBounds.height;
 
   // Detach all managed views first

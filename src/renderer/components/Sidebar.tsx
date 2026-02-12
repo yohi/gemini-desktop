@@ -46,6 +46,7 @@ export function Sidebar() {
           onClick={() => setIsAdding(!isAdding)}
           className="p-1 hover:bg-gray-800 rounded text-gray-400 hover:text-white transition-colors"
           title="Add User"
+          aria-label="Add User"
         >
           <Plus size={20} />
         </button>
@@ -98,6 +99,7 @@ export function Sidebar() {
                 }}
                 className="opacity-0 group-hover:opacity-100 p-1 hover:bg-red-500/20 text-gray-400 hover:text-red-400 rounded transition-all absolute right-2"
                 title="Remove User"
+                aria-label={`Remove ${user.name}`}
             >
                 <X size={14} />
             </button>
