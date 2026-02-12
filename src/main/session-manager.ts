@@ -11,8 +11,8 @@ export function getSession(userId: string): Session {
   const sess = session.fromPartition(partition);
 
   // Configure session: Set User-Agent to prevent Google login blocks
-  // Using a more recent Chrome UA for Linux (Chrome 142)
-  sess.setUserAgent('Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36');
+  // Using a more recent Chrome UA for Linux (Chrome 144)
+  sess.setUserAgent('Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.7559.67 Safari/537.36');
 
   // Additional configuration (e.g., CSP, permissions) can be added here
   const allowedPermissions = ['notifications', 'media', 'fullscreen'];
