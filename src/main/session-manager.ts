@@ -1,5 +1,32 @@
 import { session, Session } from 'electron';
 
+// Helper to check if origin is allowed
+function isAllowedOrigin(originUrlOrString: string): boolean {
+  try {
+    // requestingUrl is a full URL, requestingOrigin is an origin string.
+    // Both can be parsed by new URL().
+    const url = new URL(originUrlOrString);
+    const hostname = url.hostname;
+
+    // Allow Gemini directly
+    if (hostname === 'gemini.google.com') return true;
+
+    // Allow Google accounts and services
+    if (hostname === 'accounts.google.com') return true;
+
+    // Allow subdomains of key Google services
+    if (hostname.endsWith('.google.com')) return true;
+    if (hostname.endsWith('.gstatic.com')) return true;
+    if (hostname.endsWith('.googleapis.com')) return true;
+    if (hostname.endsWith('.googleusercontent.com')) return true;
+    if (hostname.endsWith('.youtube.com')) return true;
+
+    return false;
+  } catch (e) {
+    return false;
+  }
+}
+
 export function getSession(userId: string): Session {
   const trimmedUserId = userId ? userId.trim() : '';
   if (!trimmedUserId) {
@@ -10,21 +37,15 @@ export function getSession(userId: string): Session {
   const sess = session.fromPartition(partition);
 
   // Configure session: Set User-Agent to prevent Google login blocks
-  // Using a standard Chrome UA for Linux
-  sess.setUserAgent('Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36');
+  // Using a more recent Chrome UA for Linux (Chrome 142)
+  sess.setUserAgent('Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36');
 
   // Additional configuration (e.g., CSP, permissions) can be added here
-  const allowedOrigins = ['https://gemini.google.com'];
   const allowedPermissions = ['notifications', 'media', 'fullscreen'];
 
   sess.setPermissionRequestHandler((_webContents, permission, callback, details) => {
     // Check origin
-    try {
-      const origin = new URL(details.requestingUrl).origin;
-      if (!allowedOrigins.includes(origin)) {
-        return callback(false);
-      }
-    } catch (e) {
+    if (!isAllowedOrigin(details.requestingUrl)) {
       return callback(false);
     }
 
@@ -37,7 +58,7 @@ export function getSession(userId: string): Session {
   });
 
   sess.setPermissionCheckHandler((_webContents, permission, requestingOrigin) => {
-    if (!allowedOrigins.includes(requestingOrigin)) {
+    if (!isAllowedOrigin(requestingOrigin)) {
       return false;
     }
 
