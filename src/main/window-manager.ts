@@ -41,11 +41,14 @@ export function getOrCreateView(userId: string): WebContentsView {
     }
   });
 
-  // Load default URL
-  view.webContents.loadURL('https://gemini.google.com');
+    // Load default URL
+    view.webContents.loadURL('https://gemini.google.com');
 
-  views.set(userId, view);
-  return view;
+    views.set(userId, view);
+    return view;
+  } catch (error: any) {
+    throw new Error(`getOrCreateView: Failed to create view for userId "${userId}" (getSession failed?): ${error.message}`);
+  }
 }
 
 export function switchUser(userId: string) {
