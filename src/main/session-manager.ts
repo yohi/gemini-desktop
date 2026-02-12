@@ -1,31 +1,5 @@
 import { session, Session } from 'electron';
-
-// Helper to check if origin is allowed
-function isAllowedOrigin(originUrlOrString: string): boolean {
-  try {
-    // requestingUrl is a full URL, requestingOrigin is an origin string.
-    // Both can be parsed by new URL().
-    const url = new URL(originUrlOrString);
-    const hostname = url.hostname;
-
-    // Allow Gemini directly
-    if (hostname === 'gemini.google.com') return true;
-
-    // Allow Google accounts and services
-    if (hostname === 'accounts.google.com') return true;
-
-    // Allow subdomains of key Google services
-    if (hostname.endsWith('.google.com')) return true;
-    if (hostname.endsWith('.gstatic.com')) return true;
-    if (hostname.endsWith('.googleapis.com')) return true;
-    if (hostname.endsWith('.googleusercontent.com')) return true;
-    if (hostname.endsWith('.youtube.com')) return true;
-
-    return false;
-  } catch (e) {
-    return false;
-  }
-}
+import { isAllowedPermissionOrigin } from './url-utils';
 
 export function getSession(userId: string): Session {
   const trimmedUserId = userId ? userId.trim() : '';
@@ -45,7 +19,7 @@ export function getSession(userId: string): Session {
 
   sess.setPermissionRequestHandler((_webContents, permission, callback, details) => {
     // Check origin
-    if (!isAllowedOrigin(details.requestingUrl)) {
+    if (!isAllowedPermissionOrigin(details.requestingUrl)) {
       return callback(false);
     }
 
@@ -58,7 +32,7 @@ export function getSession(userId: string): Session {
   });
 
   sess.setPermissionCheckHandler((_webContents, permission, requestingOrigin) => {
-    if (!isAllowedOrigin(requestingOrigin)) {
+    if (!isAllowedPermissionOrigin(requestingOrigin)) {
       return false;
     }
 
