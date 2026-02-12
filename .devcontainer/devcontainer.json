@@ -1,0 +1,22 @@
+{
+	"name": "Gemini Desktop Dev",
+	"build": {
+		"dockerfile": "Dockerfile"
+	},
+	"customizations": {
+		"vscode": {
+			"extensions": [
+				"dbaeumer.vscode-eslint",
+				"esbenp.prettier-vscode"
+			]
+		}
+	},
+	"remoteUser": "vscode",
+	"features": {
+		"ghcr.io/devcontainers/features/node:1": {
+			"version": "22",
+			"nodeGypDependencies": true
+		}
+	},
+	"postCreateCommand": "npm install"
+}
