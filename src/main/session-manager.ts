@@ -1,4 +1,5 @@
 import { session, Session } from 'electron';
+import { isAllowedPermissionOrigin } from './url-utils';
 
 export function getSession(userId: string): Session {
   const trimmedUserId = userId ? userId.trim() : '';
@@ -10,21 +11,15 @@ export function getSession(userId: string): Session {
   const sess = session.fromPartition(partition);
 
   // Configure session: Set User-Agent to prevent Google login blocks
-  // Using a standard Chrome UA for Linux
-  sess.setUserAgent('Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36');
+  // Using a more recent Chrome UA for Linux (Chrome 144)
+  sess.setUserAgent('Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.7559.67 Safari/537.36');
 
   // Additional configuration (e.g., CSP, permissions) can be added here
-  const allowedOrigins = ['https://gemini.google.com'];
   const allowedPermissions = ['notifications', 'media', 'fullscreen'];
 
   sess.setPermissionRequestHandler((_webContents, permission, callback, details) => {
     // Check origin
-    try {
-      const origin = new URL(details.requestingUrl).origin;
-      if (!allowedOrigins.includes(origin)) {
-        return callback(false);
-      }
-    } catch (e) {
+    if (!isAllowedPermissionOrigin(details.requestingUrl)) {
       return callback(false);
     }
 
@@ -37,7 +32,7 @@ export function getSession(userId: string): Session {
   });
 
   sess.setPermissionCheckHandler((_webContents, permission, requestingOrigin) => {
-    if (!allowedOrigins.includes(requestingOrigin)) {
+    if (!isAllowedPermissionOrigin(requestingOrigin)) {
       return false;
     }
 
