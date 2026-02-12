@@ -1,0 +1,21 @@
+appId: com.google.gemini.desktop
+productName: Gemini Desktop
+directories:
+  output: dist-app
+files:
+  - dist/**/*
+  - package.json
+linux:
+  target: deb
+  category: Utility
+  maintainer: Google Jules
+  synopsis: Multi-User Gemini Desktop App
+  description: A desktop application for managing multiple Gemini sessions with isolation.
+deb:
+  depends:
+    - libnss3
+    - libatk-bridge2.0-0
+    - libgtk-3-0
+    - libasound2
+    - libxss1
+    - libxtst6
