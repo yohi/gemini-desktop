@@ -18,22 +18,28 @@ export function initWindowManager(win: BrowserWindow) {
 
 export function getOrCreateView(userId: string): WebContentsView {
   if (!userId || !userId.trim()) {
-    throw new Error('getOrCreateView: userId cannot be empty or whitespace');
+    throw new Error('Invalid userId: cannot be empty or whitespace-only');
   }
 
   if (views.has(userId)) {
     return views.get(userId)!;
   }
 
+  let userSession;
   try {
-    const view = new WebContentsView({
-      webPreferences: {
-        session: getSession(userId),
-        nodeIntegration: false,
-        contextIsolation: true,
-        sandbox: true,
-      }
-    });
+    userSession = getSession(userId);
+  } catch (error) {
+    throw new Error(`Failed to get session for user ${userId}: ${(error as Error).message}`);
+  }
+
+  const view = new WebContentsView({
+    webPreferences: {
+      session: userSession,
+      nodeIntegration: false,
+      contextIsolation: true,
+      sandbox: true,
+    }
+  });
 
     // Load default URL
     view.webContents.loadURL('https://gemini.google.com');
