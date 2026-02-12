@@ -17,24 +17,32 @@ export function initWindowManager(win: BrowserWindow) {
 }
 
 export function getOrCreateView(userId: string): WebContentsView {
+  if (!userId || !userId.trim()) {
+    throw new Error('getOrCreateView: userId cannot be empty or whitespace');
+  }
+
   if (views.has(userId)) {
     return views.get(userId)!;
   }
 
-  const view = new WebContentsView({
-    webPreferences: {
-      session: getSession(userId),
-      nodeIntegration: false,
-      contextIsolation: true,
-      sandbox: true,
-    }
-  });
+  try {
+    const view = new WebContentsView({
+      webPreferences: {
+        session: getSession(userId),
+        nodeIntegration: false,
+        contextIsolation: true,
+        sandbox: true,
+      }
+    });
 
-  // Load default URL
-  view.webContents.loadURL('https://gemini.google.com');
+    // Load default URL
+    view.webContents.loadURL('https://gemini.google.com');
 
-  views.set(userId, view);
-  return view;
+    views.set(userId, view);
+    return view;
+  } catch (error: any) {
+    throw new Error(`getOrCreateView: Failed to create view for userId "${userId}" (getSession failed?): ${error.message}`);
+  }
 }
 
 export function switchUser(userId: string) {
