@@ -16,8 +16,8 @@ interface AppState {
   setActiveUser: (id: string) => void;
   setSplitViewUser: (id: string | null) => void;
   addUser: (name: string) => Promise<void>;
-  switchUser: (id: string) => void;
-  toggleSplit: (primaryId: string, secondaryId: string) => void;
+  switchUser: (id: string) => Promise<void>;
+  toggleSplit: (primaryId: string, secondaryId: string) => Promise<void>;
   removeUser: (id: string) => Promise<void>;
   refreshUsers: () => Promise<void>;
 }
@@ -61,14 +61,32 @@ export const useStore = create<AppState>((set, get) => ({
     }
   },
 
-  switchUser: (id) => {
+  switchUser: async (id) => {
+    const previousState = {
+      activeUserId: get().activeUserId,
+      splitViewUserId: get().splitViewUserId
+    };
     set({ activeUserId: id, splitViewUserId: null });
-    window.electronAPI.switchUser(id);
+    try {
+      await window.electronAPI.switchUser(id);
+    } catch (error) {
+      set(previousState);
+      throw error;
+    }
   },
 
-  toggleSplit: (primaryId, secondaryId) => {
+  toggleSplit: async (primaryId, secondaryId) => {
+    const previousState = {
+      activeUserId: get().activeUserId,
+      splitViewUserId: get().splitViewUserId
+    };
     set({ activeUserId: primaryId, splitViewUserId: secondaryId });
-    window.electronAPI.toggleSplit(primaryId, secondaryId);
+    try {
+      await window.electronAPI.toggleSplit(primaryId, secondaryId);
+    } catch (error) {
+      set(previousState);
+      throw error;
+    }
   },
 
   removeUser: async (id) => {
