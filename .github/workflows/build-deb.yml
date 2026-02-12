@@ -4,10 +4,14 @@ on:
   push:
     branches:
       - master
+    tags:
+      - 'v*'
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
 
     steps:
       - name: Checkout code
@@ -29,8 +33,15 @@ jobs:
         run: npx vite build
 
       - name: Build Electron App
-        run: xvfb-run --auto-servernum --server-args="-screen 0 1280x960x24" npx electron-builder --linux deb --publish never
+        run: |
+          if [[ $GITHUB_REF == refs/tags/* ]]; then
+            PUBLISH_FLAG="--publish always"
+          else
+            PUBLISH_FLAG="--publish never"
+          fi
+          xvfb-run --auto-servernum --server-args="-screen 0 1280x960x24" npx electron-builder --linux deb $PUBLISH_FLAG
         env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           DEBUG: electron-builder
 
       - name: Upload DEB package
