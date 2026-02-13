@@ -81,12 +81,7 @@ function updateLayout() {
         // Cast to any to access View methods if not in type definition
         const contentView = (mainWindow as any).contentView;
         if (contentView) {
-             // Try to remove child view. Check for method name.
-             if (contentView.removeChildView) {
-                 contentView.removeChildView(v);
-             } else if (contentView.removeChild) {
-                 contentView.removeChild(v);
-             }
+             contentView.removeChildView(v);
         }
       } catch (e) {
           // Ignore
@@ -98,11 +93,7 @@ function updateLayout() {
   if (currentActiveUserId && !splitViewUserId) {
       const v = getOrCreateView(currentActiveUserId);
       if (contentView) {
-          if (contentView.addChildView) {
-              contentView.addChildView(v);
-          } else if (contentView.addChild) {
-              contentView.addChild(v);
-          }
+          contentView.addChildView(v);
       }
       v.setBounds({ x: sidebarWidth, y: 0, width: contentWidth, height: height });
   } else if (currentActiveUserId && splitViewUserId) {
@@ -110,13 +101,8 @@ function updateLayout() {
       const v2 = getOrCreateView(splitViewUserId);
 
       if (contentView) {
-          if (contentView.addChildView) {
-              contentView.addChildView(v1);
-              contentView.addChildView(v2);
-          } else if (contentView.addChild) {
-              contentView.addChild(v1);
-              contentView.addChild(v2);
-          }
+          contentView.addChildView(v1);
+          contentView.addChildView(v2);
       }
 
       const halfWidth = Math.floor(contentWidth / 2);
