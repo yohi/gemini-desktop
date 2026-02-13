@@ -12,7 +12,16 @@ export function getSession(userId: string): Session {
 
   // Configure session: Set User-Agent to prevent Google login blocks
   // Using a more recent Chrome UA for Linux (Chrome 144)
-  sess.setUserAgent('Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.7559.67 Safari/537.36');
+  const chromeVersion = '144.0.7559.67';
+  let userAgent = '';
+  if (process.platform === 'darwin') {
+    userAgent = `Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${chromeVersion} Safari/537.36`;
+  } else if (process.platform === 'win32') {
+    userAgent = `Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${chromeVersion} Safari/537.36`;
+  } else {
+    userAgent = `Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${chromeVersion} Safari/537.36`;
+  }
+  sess.setUserAgent(userAgent);
 
   // Additional configuration (e.g., CSP, permissions) can be added here
   const allowedPermissions = ['notifications', 'media', 'fullscreen'];
