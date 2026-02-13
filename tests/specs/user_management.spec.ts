@@ -32,13 +32,13 @@ test.describe('User Management', () => {
     await expect(page.locator('text=Test User').first()).toBeVisible();
 
     // Verify that a WebContentsView is attached to the main window
-    const viewCount = await electronApp.evaluate(({ BrowserWindow }) => {
-      const win = BrowserWindow.getAllWindows()[0];
-      const contentView = (win as any).contentView;
-      return contentView && contentView.children ? contentView.children.length : 0;
-    });
-
-    expect(viewCount).toBeGreaterThan(0);
+    await expect.poll(async () => {
+      return await electronApp.evaluate(({ BrowserWindow }) => {
+        const win = BrowserWindow.getAllWindows()[0];
+        const contentView = (win as any).contentView;
+        return contentView && contentView.children ? contentView.children.length : 0;
+      });
+    }).toBeGreaterThan(0);
 
     // Screenshot for verification
     await page.screenshot({ path: 'verification.png' });
