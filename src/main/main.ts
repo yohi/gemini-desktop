@@ -41,6 +41,9 @@ async function createWindow() {
   initWindowManager(mainWindow);
 }
 
+// Prevent Google from detecting the browser as automated
+app.commandLine.appendSwitch('disable-blink-features', 'AutomationControlled');
+
 app.whenReady().then(async () => {
   registerIpcHandlers();
   await createWindow();
