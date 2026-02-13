@@ -55,9 +55,16 @@ export const useStore = create<AppState>((set, get) => ({
   addUser: async (name) => {
     try {
       const user = await window.electronAPI.addUser(name);
-      set((state) => ({ users: [...state.users, user], activeUserId: user.id }));
+      set((state) => ({ users: [...state.users, user] }));
+      try {
+        await get().switchUser(user.id);
+      } catch (switchError) {
+        set((state) => ({ users: state.users.filter((u) => u.id !== user.id) }));
+        throw switchError;
+      }
     } catch (e) {
       console.error(e);
+      throw e;
     }
   },
 
