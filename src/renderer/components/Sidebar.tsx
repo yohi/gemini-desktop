@@ -39,30 +39,56 @@ export function Sidebar() {
   };
 
   return (
-    <aside className="w-[250px] h-full bg-gray-900 border-r border-gray-700 flex flex-col z-50 relative pointer-events-auto shadow-xl">
-      <div className="p-4 border-b border-gray-700 flex justify-between items-center bg-gray-900 sticky top-0">
-        <h1 className="text-xl font-bold text-white">Gemini</h1>
+    <aside className="w-[72px] h-full bg-gray-900 border-r border-gray-700 flex flex-col z-50 relative pointer-events-auto shadow-xl transition-all">
+      <div className="py-4 border-b border-gray-700 flex flex-col items-center gap-3 bg-gray-900 sticky top-0">
+        <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center shadow-lg text-white font-bold text-xl">
+          G
+        </div>
         <button
           onClick={() => setIsAdding(!isAdding)}
-          className="p-1 hover:bg-gray-800 rounded text-gray-400 hover:text-white transition-colors"
+          className="w-10 h-10 rounded-full hover:bg-gray-800 flex items-center justify-center text-gray-400 hover:text-white transition-colors"
           title="Add User"
           aria-label="Add User"
         >
-          <Plus size={20} />
+          <Plus size={24} />
         </button>
       </div>
 
       {isAdding && (
-        <form onSubmit={handleAddUser} className="p-2 border-b border-gray-700 bg-gray-800 animate-in slide-in-from-top-2">
-          <input
-            type="text"
-            value={newUserName}
-            onChange={(e) => setNewUserName(e.target.value)}
-            placeholder="User Name"
-            className="w-full bg-gray-700 text-white p-2 rounded border border-gray-600 focus:outline-none focus:border-blue-500 text-sm"
-            autoFocus
-          />
-        </form>
+        <div className="absolute left-[84px] top-[68px] z-50 animate-in fade-in slide-in-from-left-2">
+          <form
+            onSubmit={handleAddUser}
+            className="bg-gray-800 p-3 rounded-xl shadow-2xl border border-gray-700 w-60 flex flex-col gap-2 relative z-10"
+          >
+            <div className="flex justify-between items-center text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">
+              <span>New Session</span>
+              <button
+                type="button"
+                onClick={() => setIsAdding(false)}
+                className="hover:text-white"
+              >
+                <X size={14} />
+              </button>
+            </div>
+            <input
+              type="text"
+              value={newUserName}
+              onChange={(e) => setNewUserName(e.target.value)}
+              placeholder="Enter name..."
+              className="w-full bg-gray-900 text-white p-2 rounded-lg border border-gray-600 focus:outline-none focus:border-blue-500 text-sm placeholder:text-gray-600"
+              autoFocus
+            />
+            <div className="flex justify-end">
+                <button
+                    type="submit"
+                    className="bg-blue-600 hover:bg-blue-500 text-white text-xs py-1 px-3 rounded-lg font-medium transition-colors"
+                >
+                    Create
+                </button>
+            </div>
+          </form>
+          <div className="absolute top-4 -left-1.5 w-3 h-3 bg-gray-800 border-l border-b border-gray-700 transform rotate-45 z-20" />
+        </div>
       )}
 
       <div className="flex-1 overflow-y-auto p-2 space-y-2">
@@ -74,20 +100,22 @@ export function Sidebar() {
             onDrop={(e) => handleDrop(e, user.id)}
             onDragOver={handleDragOver}
             onClick={() => switchUser(user.id)}
+            title={user.name}
             className={cn(
-              "flex items-center p-3 rounded cursor-pointer transition-all group relative select-none",
-              activeUserId === user.id ? "bg-blue-600 text-white shadow-md" :
-              splitViewUserId === user.id ? "bg-indigo-600 text-white shadow-md" :
-              "bg-gray-800 text-gray-300 hover:bg-gray-700"
+              "w-12 h-12 flex items-center justify-center relative group cursor-pointer transition-all mx-auto select-none",
+              activeUserId === user.id
+                ? "bg-blue-600 text-white shadow-md rounded-2xl"
+                : splitViewUserId === user.id
+                  ? "bg-indigo-600 text-white shadow-md rounded-2xl"
+                  : "bg-gray-800 text-gray-400 hover:bg-gray-700 hover:text-white rounded-3xl hover:rounded-2xl"
             )}
           >
-            <div className="w-8 h-8 rounded-full bg-gray-600 flex items-center justify-center mr-3 shrink-0 border border-gray-500">
-              <UserIcon size={16} />
-            </div>
-            <span className="truncate flex-1 font-medium text-sm">{user.name}</span>
+            <UserIcon size={20} />
 
             {splitViewUserId === user.id && (
-                <Columns size={16} className="text-white opacity-70 mr-2 shrink-0" title="Split View Active" />
+                <div className="absolute -bottom-1 -right-1 bg-indigo-500 rounded-full p-1 border-2 border-gray-900">
+                    <Columns size={10} className="text-white" />
+                </div>
             )}
 
             <button
@@ -97,28 +125,25 @@ export function Sidebar() {
                         removeUser(user.id);
                     }
                 }}
-                className="opacity-0 group-hover:opacity-100 p-1 hover:bg-red-500/20 text-gray-400 hover:text-red-400 rounded transition-all absolute right-2"
+                className="opacity-0 group-hover:opacity-100 absolute -top-1 -right-1 w-5 h-5 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center shadow-sm z-10 transition-opacity"
                 title="Remove User"
                 aria-label={`Remove ${user.name}`}
             >
-                <X size={14} />
+                <X size={12} />
             </button>
           </div>
         ))}
 
         {users.length === 0 && !isAdding && (
-            <div className="flex flex-col items-center justify-center h-40 text-gray-500 text-center p-4">
-                <div className="bg-gray-800 p-3 rounded-full mb-3">
-                    <UserIcon size={24} className="opacity-50" />
+            <div className="flex flex-col items-center justify-center py-8 opacity-50">
+                <div className="w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center mb-2">
+                    <UserIcon size={20} className="text-gray-500" />
                 </div>
-                <p className="font-medium">No users yet.</p>
-                <p className="text-xs mt-1">Click the + button above to create a new isolated session.</p>
             </div>
         )}
       </div>
 
-      <div className="p-3 border-t border-gray-700 text-[10px] text-gray-500 text-center bg-gray-900">
-        Drag & Drop users to Split View
+      <div className="py-3 border-t border-gray-700 flex justify-center bg-gray-900">
       </div>
     </aside>
   );
