@@ -66,6 +66,19 @@ export function enableSplitView(primaryId: string, secondaryId: string) {
   updateLayout();
 }
 
+export function isMainWindow(wc: Electron.WebContents): boolean {
+  return mainWindow?.webContents === wc;
+}
+
+export function getUserIdFromWebContents(wc: Electron.WebContents): string | undefined {
+  for (const [userId, view] of views.entries()) {
+    if (view.webContents === wc) {
+      return userId;
+    }
+  }
+  return undefined;
+}
+
 function updateLayout() {
   if (!mainWindow) return;
   // Use _bounds to avoid unused variable error if we keep it, or just remove it.
