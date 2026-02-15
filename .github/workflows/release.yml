@@ -6,7 +6,6 @@ on:
       - master
     tags:
       - 'v*'
-  pull_request:
   workflow_dispatch:
 
 jobs:
@@ -37,12 +36,6 @@ jobs:
           echo "Current ref type: ${{ github.ref_type }}"
           echo "Current ref name: ${{ github.ref_name }}"
 
-          # PRの場合はスキップ
-          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
-            echo "Triggered by PR. Skipping release logic."
-            echo "should_release=false" >> $GITHUB_OUTPUT
-            exit 0
-          fi
           # タグプッシュによるトリガーの場合
           if [[ "${{ github.ref_type }}" == "tag" ]]; then
             echo "Triggered by tag."
