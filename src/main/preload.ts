@@ -1,5 +1,22 @@
 import { contextBridge, ipcRenderer } from 'electron';
 
+// Spoof navigator properties to prevent detection
+try {
+  Object.defineProperty(navigator, 'webdriver', {
+    get: () => undefined,
+  });
+
+  // Remove plugins spoofing as it might be detectable if done poorly
+  // The session's userAgent settings should handle the main detection points.
+  // Object.defineProperty(navigator, 'plugins', { ... });
+
+  // Optional: spoof languages if needed, but let's trust the session
+  // Object.defineProperty(navigator, 'languages', { ... });
+
+} catch (e) {
+  console.error('Failed to spoof navigator properties', e);
+}
+
 contextBridge.exposeInMainWorld('electronAPI', {
   getUsers: () => ipcRenderer.invoke('get-users'),
   addUser: (name: string) => ipcRenderer.invoke('add-user', name),

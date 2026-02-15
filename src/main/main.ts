@@ -44,7 +44,9 @@ async function createWindow() {
 // Prevent Google from detecting the browser as automated
 app.commandLine.appendSwitch('disable-blink-features', 'AutomationControlled');
 // Improve compatibility with OAuth flows
-app.commandLine.appendSwitch('disable-features', 'CrossOriginOpenerPolicy');
+app.commandLine.appendSwitch('disable-features', 'CrossOriginOpenerPolicy,IsolateOrigins,site-per-process');
+app.commandLine.appendSwitch('allow-running-insecure-content');
+app.commandLine.appendSwitch('remote-debugging-port', '0');
 
 app.whenReady().then(async () => {
   registerIpcHandlers();

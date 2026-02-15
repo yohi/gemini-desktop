@@ -11,22 +11,22 @@ export function getSession(userId: string): Session {
   const sess = session.fromPartition(partition);
 
   // Configure session: Set User-Agent to prevent Google login blocks
-  // Use the actual Chrome version from the Electron runtime
-  const chromeVersion = process.versions.chrome;
+  // Use a fixed Chrome User-Agent to ensure compatibility
+  const chromeMajorVersion = '133';
+  const fullChromeVersion = '133.0.6943.53';
   let userAgent = '';
   if (process.platform === 'darwin') {
-    userAgent = `Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${chromeVersion} Safari/537.36`;
+    userAgent = `Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${fullChromeVersion} Safari/537.36`;
   } else if (process.platform === 'win32') {
-    userAgent = `Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${chromeVersion} Safari/537.36`;
+    userAgent = `Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${fullChromeVersion} Safari/537.36`;
   } else {
-    userAgent = `Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${chromeVersion} Safari/537.36`;
+    userAgent = `Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${fullChromeVersion} Safari/537.36`;
   }
   sess.setUserAgent(userAgent);
 
   // Configure Client Hints headers to mimic Chrome and remove Electron references
   sess.webRequest.onBeforeSendHeaders((details, callback) => {
     const { requestHeaders } = details;
-    const chromeMajorVersion = chromeVersion.split('.')[0];
 
     // Helper to safely set headers regardless of case
     const setHeader = (name: string, value: string) => {
@@ -40,7 +40,9 @@ export function getSession(userId: string): Session {
     };
 
     // Standard Chrome sec-ch-ua
-    const secChUa = `"Chromium";v="${chromeMajorVersion}", "Google Chrome";v="${chromeMajorVersion}", "Not-A.Brand";v="99"`;
+    // Order: GREASE, Google Chrome, Chromium
+    // e.g. "Not(A:Brand";v="99", "Google Chrome";v="133", "Chromium";v="133"
+    const secChUa = `"Not(A:Brand";v="99", "Google Chrome";v="${chromeMajorVersion}", "Chromium";v="${chromeMajorVersion}"`;
     setHeader('sec-ch-ua', secChUa);
 
     // Standard Chrome sec-ch-ua-mobile
@@ -60,7 +62,7 @@ export function getSession(userId: string): Session {
     // If full version list is requested/sent, update it too
     const existingFullVersion = Object.keys(requestHeaders).find(k => k.toLowerCase() === 'sec-ch-ua-full-version-list');
     if (existingFullVersion) {
-        requestHeaders[existingFullVersion] = `"Chromium";v="${chromeVersion}", "Google Chrome";v="${chromeVersion}", "Not-A.Brand";v="99.0.0.0"`;
+        requestHeaders[existingFullVersion] = `"Chromium";v="${fullChromeVersion}", "Not(A:Brand";v="99.0.0.0", "Google Chrome";v="${fullChromeVersion}"`;
     }
 
     callback({ requestHeaders });
