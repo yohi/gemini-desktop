@@ -1,6 +1,7 @@
 import { ipcMain } from 'electron';
 import { switchUser, enableSplitView } from './window-manager';
 import { getUsers, addUser, removeUser, User } from './store';
+import { clearSessionData } from './session-manager';
 import crypto from 'crypto';
 
 export function registerIpcHandlers() {
@@ -25,5 +26,9 @@ export function registerIpcHandlers() {
 
   ipcMain.handle('remove-user', (_event, userId: string) => {
       removeUser(userId);
+  });
+
+  ipcMain.handle('clear-session-data', (_event, userId: string) => {
+    return clearSessionData(userId);
   });
 }
