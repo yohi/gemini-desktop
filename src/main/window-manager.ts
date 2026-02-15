@@ -43,7 +43,7 @@ export function getOrCreateView(userId: string): WebContentsView {
 
   // Modify User Agent to remove Electron identifier to fix Google login issue
   const originalUserAgent = view.webContents.getUserAgent();
-  const newUserAgent = originalUserAgent.replace(/Electron\/[0-9\.]+\s/, '');
+  const newUserAgent = originalUserAgent.replace(/Electron\/[0-9.]+(?:-[a-zA-Z0-9.]+)?\s?/, '');
   view.webContents.setUserAgent(newUserAgent);
 
   // Load default URL
