@@ -7,6 +7,7 @@ on:
     tags:
       - 'v*'
   pull_request:
+  workflow_dispatch:
 
 jobs:
   # 1. リリースの準備（バージョンの確認とタグ付け）
@@ -23,9 +24,19 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
       - name: Check and Tag
         id: check
         run: |
+          echo "Current event: ${{ github.event_name }}"
+          echo "Current ref type: ${{ github.ref_type }}"
+          echo "Current ref name: ${{ github.ref_name }}"
+
           # PRの場合はスキップ
           if [[ "${{ github.event_name }}" == "pull_request" ]]; then
             echo "Triggered by PR. Skipping release logic."
