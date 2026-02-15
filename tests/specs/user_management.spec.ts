@@ -23,13 +23,13 @@ test.describe('User Management', () => {
     await page.click('[aria-label="Add User"]');
 
     // Type user name
-    await page.fill('input[placeholder="User Name"]', 'Test User');
+    await page.fill('input[placeholder="Enter name..."]', 'Test User');
 
     // Press Enter
-    await page.press('input[placeholder="User Name"]', 'Enter');
+    await page.press('input[placeholder="Enter name..."]', 'Enter');
 
     // Wait for user to appear in sidebar
-    await expect(page.locator('text=Test User').first()).toBeVisible();
+    await expect(page.locator('[title="Test User"]').first()).toBeVisible();
 
     // Verify that a WebContentsView is attached to the main window
     await expect.poll(async () => {
