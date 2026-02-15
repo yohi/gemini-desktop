@@ -41,10 +41,6 @@ export function getOrCreateView(userId: string): WebContentsView {
     }
   });
 
-  // Modify User Agent to remove Electron identifier to fix Google login issue
-  const originalUserAgent = view.webContents.getUserAgent();
-  const newUserAgent = originalUserAgent.replace(/Electron\/[0-9.]+(?:-[a-zA-Z0-9.]+)?\s?/, '');
-  view.webContents.setUserAgent(newUserAgent);
 
   // Load default URL
     view.webContents.loadURL('https://gemini.google.com');
@@ -68,6 +64,19 @@ export function enableSplitView(primaryId: string, secondaryId: string) {
   splitViewUserId = secondaryId;
 
   updateLayout();
+}
+
+export function isMainWindow(wc: Electron.WebContents): boolean {
+  return mainWindow?.webContents === wc;
+}
+
+export function getUserIdFromWebContents(wc: Electron.WebContents): string | undefined {
+  for (const [userId, view] of views.entries()) {
+    if (view.webContents === wc) {
+      return userId;
+    }
+  }
+  return undefined;
 }
 
 function updateLayout() {
