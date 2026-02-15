@@ -6,10 +6,8 @@ on:
       - master
     tags:
       - 'v*'
-  workflow_dispatch:
 
 jobs:
-  # 1. リリースの準備（バージョンの確認とタグ付け）
   prepare-release:
     runs-on: ubuntu-latest
     permissions:
@@ -32,47 +30,99 @@ jobs:
       - name: Check and Tag
         id: check
         run: |
-          echo "Current event: ${{ github.event_name }}"
-          echo "Current ref type: ${{ github.ref_type }}"
-          echo "Current ref name: ${{ github.ref_name }}"
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            echo "Triggered by PR. Checking version bump..."
 
-          # タグプッシュによるトリガーの場合
+            # Fetch master branch to compare
+            git fetch origin master
+
+            CURRENT_VERSION=$(node -p "require('./package.json').version")
+            if [ $? -ne 0 ]; then
+               echo "Error reading current version from package.json"
+               exit 1
+            fi
+
+            # Read master version safely using node from stdin to handle JSON
+            MASTER_VERSION=$(git show origin/master:package.json | node -p "JSON.parse(require('fs').readFileSync(0, 'utf-8')).version")
+            if [ $? -ne 0 ]; then
+               echo "Error reading master version from package.json"
+               exit 1
+            fi
+
+            echo "Current version: $CURRENT_VERSION"
+            echo "Master version: $MASTER_VERSION"
+
+            if [ "$CURRENT_VERSION" == "$MASTER_VERSION" ]; then
+              echo "::warning::Version has not been bumped! Release will be skipped upon merge."
+            else
+              echo "Version bump detected: $MASTER_VERSION -> $CURRENT_VERSION"
+            fi
+
+            echo "should_release=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
           if [[ "${{ github.ref_type }}" == "tag" ]]; then
             echo "Triggered by tag."
             echo "should_release=true" >> $GITHUB_OUTPUT
             echo "release_tag=${{ github.ref_name }}" >> $GITHUB_OUTPUT
           else
-            # masterブランチへのプッシュの場合、package.jsonからバージョンを取得
             echo "Triggered by branch."
-            VERSION=$(node -p "require('./package.json').version")
-            TAG="v$VERSION"
-            echo "Detected version: $VERSION, Tag: $TAG"
+            
+            # Setup git config
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-            # タグが既に存在するか確認
-            if git rev-parse "$TAG" >/dev/null 2>&1; then
-              echo "Tag $TAG already exists locally."
-              echo "should_release=false" >> $GITHUB_OUTPUT
-            elif git ls-remote --exit-code --tags origin "refs/tags/$TAG" >/dev/null 2>&1; then
-              echo "Tag $TAG already exists on remote."
-              echo "should_release=false" >> $GITHUB_OUTPUT
-            else
-              # タグが存在しなければ作成してプッシュ
-              echo "Creating tag $TAG"
-              git config user.name "github-actions[bot]"
-              git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-              git tag -a "$TAG" -m "Release $TAG"
-              git push origin "$TAG"
+            CURRENT_VERSION=$(node -p "require('./package.json').version")
+            TAG="v$CURRENT_VERSION"
+            echo "Detected version: $CURRENT_VERSION, Tag: $TAG"
+
+            # Check if tag exists on remote
+            if git ls-remote --exit-code --tags origin "refs/tags/$TAG" >/dev/null 2>&1; then
+              echo "Tag $TAG already exists on remote. Auto-incrementing version..."
+              
+              # Bump patch version without creating a tag yet
+              npm version patch --no-git-tag-version
+              
+              NEW_VERSION=$(node -p "require('./package.json').version")
+              NEW_TAG="v$NEW_VERSION"
+              echo "Bumped to: $NEW_VERSION, New Tag: $NEW_TAG"
+              
+              # Commit and Push
+              git add package.json
+              git commit -m "chore: bump version to $NEW_VERSION [skip ci]"
+              git tag -a "$NEW_TAG" -m "Release $NEW_TAG"
+              
+              # Push changes
+              git push origin master
+              git push origin "$NEW_TAG"
+              
               echo "should_release=true" >> $GITHUB_OUTPUT
-              echo "release_tag=$TAG" >> $GITHUB_OUTPUT
+              echo "release_tag=$NEW_TAG" >> $GITHUB_OUTPUT
+            else
+              echo "Version bump detected. Tagging..."
+              
+              # Check if tag exists locally (just in case)
+              if git rev-parse "$TAG" >/dev/null 2>&1; then
+                echo "Tag $TAG already exists locally."
+                echo "should_release=false" >> $GITHUB_OUTPUT
+              else
+                git tag -a "$TAG" -m "Release $TAG"
+                git push origin "$TAG"
+                echo "should_release=true" >> $GITHUB_OUTPUT
+                echo "release_tag=$TAG" >> $GITHUB_OUTPUT
+              fi
             fi
           fi
 
-  # 2. ビルドとリリース作成
   release:
     needs: prepare-release
-    # 新しいタグが作られた、またはタグプッシュの場合のみ実行
-    if: needs.prepare-release.outputs.should_release == 'true'
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+
     permissions:
       contents: write
 
@@ -92,22 +142,35 @@ jobs:
       - name: Build Application
         run: npm run build
 
-      - name: Build & Package (Linux .deb)
-        # 元のbuild-deb.ymlにあったxvfb設定を維持しつつ、npm run distを実行
+      - name: Build & Package (Linux)
+        if: matrix.os == 'ubuntu-latest' && needs.prepare-release.outputs.should_release == 'true'
         run: |
           xvfb-run --auto-servernum --server-args="-screen 0 1280x960x24" \
-          npm run dist -- --linux deb -p never
+          npm run dist -- --linux -p never
+
+      - name: Build & Package (Windows)
+        if: matrix.os == 'windows-latest' && needs.prepare-release.outputs.should_release == 'true'
+        run: npm run dist -- --win -p never
+
+      - name: Build & Package (macOS)
+        if: matrix.os == 'macos-latest' && needs.prepare-release.outputs.should_release == 'true'
+        run: npm run dist -- --mac -p never
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
+        if: needs.prepare-release.outputs.should_release == 'true'
         with:
-          name: release-artifacts-linux
-          # electron-builder.yml の output 設定 (dist-app) に従う
-          path: dist-app/*.deb
+          name: release-artifacts-${{ matrix.os }}
+          path: dist-app/*
 
-      - name: Create GitHub Release
+      - name: Create Release
         uses: softprops/action-gh-release@v2
+        if: needs.prepare-release.outputs.should_release == 'true' && matrix.os == 'ubuntu-latest'
         with:
           tag_name: ${{ needs.prepare-release.outputs.release_tag }}
           files: |
+            dist-app/*.exe
+            dist-app/*.dmg
             dist-app/*.deb
+            dist-app/*.AppImage
+            dist-app/latest*.yml
