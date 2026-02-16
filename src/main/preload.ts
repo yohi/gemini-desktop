@@ -127,7 +127,7 @@ const spoofNavigator = () => {
       window.navigator.permissions.query = (parameters: any) => (
         parameters.name === 'notifications' ?
           Promise.resolve({ state: Notification.permission as any, kind: 'permission', name: 'notifications' } as any) :
-          originalQuery(parameters)
+          originalQuery.call(window.navigator.permissions, parameters)
       );
     }
 

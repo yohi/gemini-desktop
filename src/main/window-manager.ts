@@ -118,20 +118,22 @@ export function getOrCreateView(userId: string): WebContentsView {
 
   // Use CDP (Chrome DevTools Protocol) to inject script on new document
   // This is much more reliable than executeJavaScript on events
-  try {
-    // Attach debugger if not already attached
-    if (!view.webContents.debugger.isAttached()) {
-        view.webContents.debugger.attach('1.3');
+  (async () => {
+    try {
+      // Attach debugger if not already attached
+      if (!view.webContents.debugger.isAttached()) {
+          view.webContents.debugger.attach('1.3');
+      }
+      
+      await view.webContents.debugger.sendCommand('Page.addScriptToEvaluateOnNewDocument', {
+        source: spoofingCode
+      });
+      
+      console.log('DEBUG: Attached CDP and added spoofing script');
+    } catch (err) {
+      console.error('Debugger attach/command failed:', err);
     }
-    
-    view.webContents.debugger.sendCommand('Page.addScriptToEvaluateOnNewDocument', {
-      source: spoofingCode
-    });
-    
-    console.log('DEBUG: Attached CDP and added spoofing script');
-  } catch (err) {
-    console.error('Debugger attach/command failed:', err);
-  }
+  })();
 
   // Load default URL
   if (!app.isPackaged) {

@@ -6,12 +6,8 @@ import Store from 'electron-store';
 import crypto from 'crypto';
 
 // Dynamically derive encryption key for store
-// In production, this should ideally be something consistent but unique to the machine
 const getEncryptionKey = () => {
   if (safeStorage.isEncryptionAvailable()) {
-    // If safeStorage works, we can use a static key for the store wrapper
-    // because the actual tokens are encrypted by safeStorage individually.
-    // But to satisfy requirements, we derive one.
     return crypto.createHash('sha256').update(app.getPath('userData')).digest('hex');
   }
   return 'gemini-desktop-fallback-key';
@@ -26,23 +22,27 @@ const store = new Store<{ tokens: Record<string, string> }>({
 let client: Client | null = null;
 let codeVerifier: string | null = null;
 let server: http.Server | null = null;
-let redirectUri = 'http://127.0.0.1:3000/callback'; // Default, updated dynamically if port changes
+let redirectUri = 'http://127.0.0.1:3000/callback';
 
-// CONFIGURATION: REPLACE WITH YOUR GOOGLE CLOUD CREDENTIALS
-// NOTE: For Gemini API, you need to enable "Vertex AI API" or "Generative Language API"
-const GOOGLE_CLIENT_ID = 'GOOGLE_CLIENT_ID_PLACEHOLDER';
-const GOOGLE_CLIENT_SECRET = ''; // Native apps don't use secrets (PKCE instead)
-const SCOPES = 'openid email profile https://www.googleapis.com/auth/cloud-platform'; // Adjust scopes as needed
+// CONFIGURATION
+const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || '';
+const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET || '';
+const SCOPES = 'openid email profile https://www.googleapis.com/auth/cloud-platform';
 
 export async function initAuth(): Promise<boolean> {
+  if (!GOOGLE_CLIENT_ID) {
+    console.error('Missing GOOGLE_CLIENT_ID environment variable.');
+    return false;
+  }
+
   try {
     const googleIssuer = await Issuer.discover('https://accounts.google.com');
     client = new googleIssuer.Client({
       client_id: GOOGLE_CLIENT_ID,
       client_secret: GOOGLE_CLIENT_SECRET,
-      redirect_uris: [redirectUri], // Will be updated in startLogin if needed
+      redirect_uris: [redirectUri],
       response_types: ['code'],
-      token_endpoint_auth_method: 'none', // Public client
+      token_endpoint_auth_method: 'none',
     });
     return true;
   } catch (err) {
@@ -76,25 +76,19 @@ async function startLogin(mainWindow: BrowserWindow): Promise<string> {
   codeVerifier = generators.codeVerifier();
   const codeChallenge = generators.codeChallenge(codeVerifier);
 
-  // Start Loopback Server
   const port = await startLocalServer(mainWindow);
   
-  // Update redirect URI if port changed
   redirectUri = `http://127.0.0.1:${port}/callback`;
-  // Note: Client might need re-instantiation or direct property update if supported,
-  // but openid-client usually takes redirect_uri in authorizationUrl too?
-  // Actually, authorizationUrl takes redirect_uri.
   
   const authUrl = client.authorizationUrl({
-    redirect_uri: redirectUri, // Explicitly pass current redirect URI
+    redirect_uri: redirectUri,
     scope: SCOPES,
     code_challenge: codeChallenge,
     code_challenge_method: 'S256',
-    access_type: 'offline', // Request Refresh Token
+    access_type: 'offline',
     prompt: 'consent',
   });
 
-  // Open System Browser
   await shell.openExternal(authUrl);
   return 'Login started. Please check your browser.';
 }
@@ -102,6 +96,25 @@ async function startLogin(mainWindow: BrowserWindow): Promise<string> {
 function startLocalServer(mainWindow: BrowserWindow): Promise<number> {
   return new Promise((resolve, reject) => {
     if (server) server.close();
+
+    let timeoutHandle: NodeJS.Timeout;
+
+    const shutdown = () => {
+        if (timeoutHandle) clearTimeout(timeoutHandle);
+        if (server) {
+            server.close();
+            server = null;
+        }
+    };
+
+    const startTimeout = () => {
+        if (timeoutHandle) clearTimeout(timeoutHandle);
+        timeoutHandle = setTimeout(() => {
+            console.warn('Auth server timed out');
+            shutdown();
+            mainWindow.webContents.send('auth:error', 'Authentication timed out');
+        }, 120000);
+    };
 
     const requestHandler = async (req: http.IncomingMessage, res: http.ServerResponse) => {
       try {
@@ -120,7 +133,6 @@ function startLocalServer(mainWindow: BrowserWindow): Promise<number> {
 
           await saveToken(tokenSet);
 
-          // Success Response
           res.writeHead(200, { 'Content-Type': 'text/html' });
           res.end(`
             <html>
@@ -132,10 +144,8 @@ function startLocalServer(mainWindow: BrowserWindow): Promise<number> {
             </html>
           `);
 
-          // Cleanup
           shutdown();
           
-          // Focus app and notify renderer
           mainWindow.focus();
           mainWindow.webContents.send('auth:success', { 
             accessToken: tokenSet.access_token,
@@ -155,61 +165,41 @@ function startLocalServer(mainWindow: BrowserWindow): Promise<number> {
       }
     };
 
-    server = http.createServer(requestHandler);
+    const createServerAndListen = (port: number, isFallback = false) => {
+        const srv = http.createServer(requestHandler);
+        server = srv;
 
-    // Timeout safety
-    const timeoutHandle = setTimeout(() => {
-        console.warn('Auth server timed out');
-        shutdown();
-        mainWindow.webContents.send('auth:error', 'Authentication timed out');
-    }, 120000); // 2 minutes
+        srv.on('error', (e: any) => {
+            if (e.code === 'EADDRINUSE' && !isFallback) {
+                console.warn('Port 3000 in use, trying ephemeral port...');
+                srv.close();
+                createServerAndListen(0, true);
+            } else {
+                console.error('Server error:', e);
+                shutdown();
+                if (!isFallback) reject(e);
+                else mainWindow.webContents.send('auth:error', (e as Error).message);
+            }
+        });
 
-    const shutdown = () => {
-        clearTimeout(timeoutHandle);
-        if (server) {
-            server.close();
-            server = null;
-        }
+        srv.listen(port, '127.0.0.1', () => {
+            const addr = srv.address();
+            const actualPort = typeof addr === 'object' && addr ? addr.port : port;
+            console.log(`Loopback server listening on port ${actualPort}`);
+            startTimeout();
+            resolve(actualPort);
+        });
     };
 
-    server.on('error', (e: any) => {
-      clearTimeout(timeoutHandle);
-      if (e.code === 'EADDRINUSE') {
-         // Retry logic would go here if we were implementing robust port hunting
-         // For now, reject to let caller handle or try next port logic outside
-         // But prompt asked to "try binding to a free port".
-         // Let's rely on listen(0) for ephemeral port if 3000 fails? 
-         // Or just reject for now as we need to keep this simple for the diff.
-         console.error('Port 3000 in use');
-         // We will try port 0 (random) if 3000 fails
-         if (server) server.close();
-         server = http.createServer(requestHandler);
-         server.listen(0, '127.0.0.1', () => {
-             const addr = server?.address();
-             const port = typeof addr === 'object' && addr ? addr.port : 0;
-             console.log(`Fallback: Loopback server listening on ephemeral port ${port}`);
-             resolve(port);
-         });
-      } else {
-         console.error('Server error:', e);
-         reject(e);
-      }
-    });
-
-    server.listen(3000, '127.0.0.1', () => {
-      console.log('Loopback server listening on port 3000');
-      resolve(3000);
-    });
+    createServerAndListen(3000);
   });
 }
 
 async function saveToken(tokenSet: TokenSet) {
-  // Use safeStorage if available (macOS/Windows)
   if (safeStorage.isEncryptionAvailable() && tokenSet.refresh_token) {
     const encrypted = safeStorage.encryptString(tokenSet.refresh_token);
     (store as any).set('tokens.refresh_token_encrypted', encrypted.toString('hex'));
   } else if (tokenSet.refresh_token) {
-    // Fallback for Linux or dev: basic encryption by store
     (store as any).set('tokens.refresh_token_plain', tokenSet.refresh_token);
   }
 }
@@ -221,7 +211,6 @@ async function loadToken() {
   }
   if (!client) return null;
   
-  // Try to load refresh token
   let refreshToken: string | undefined;
   
   const encrypted = (store as any).get('tokens.refresh_token_encrypted') as string;
@@ -238,10 +227,8 @@ async function loadToken() {
   if (!refreshToken) return null;
 
   try {
-    // Refresh the access token
-    // Using client directly since we checked it above
     const tokenSet = await client.refresh(refreshToken);
-    await saveToken(tokenSet); // Save new refresh token if rotated
+    await saveToken(tokenSet);
     return tokenSet.access_token;
   } catch (e) {
     console.error('Token refresh failed:', e);
