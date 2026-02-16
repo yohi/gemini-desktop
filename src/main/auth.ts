@@ -20,6 +20,7 @@ const store = new Store<{ tokens: Record<string, string> }>({
 });
 
 let client: Client | null = null;
+let googleIssuer: Issuer<Client> | null = null;
 let codeVerifier: string | null = null;
 let server: http.Server | null = null;
 let redirectUri = 'http://127.0.0.1:3000/callback';
@@ -36,7 +37,7 @@ export async function initAuth(): Promise<boolean> {
   }
 
   try {
-    const googleIssuer = await Issuer.discover('https://accounts.google.com');
+    googleIssuer = await Issuer.discover('https://accounts.google.com');
     client = new googleIssuer.Client({
       client_id: GOOGLE_CLIENT_ID,
       client_secret: GOOGLE_CLIENT_SECRET,
@@ -80,6 +81,17 @@ async function startLogin(mainWindow: BrowserWindow): Promise<string> {
   
   redirectUri = `http://127.0.0.1:${port}/callback`;
   
+  // Update client redirect_uris to match the actual port
+  if (googleIssuer) {
+    client = new googleIssuer.Client({
+      client_id: GOOGLE_CLIENT_ID,
+      client_secret: GOOGLE_CLIENT_SECRET,
+      redirect_uris: [redirectUri],
+      response_types: ['code'],
+      token_endpoint_auth_method: 'none',
+    });
+  }
+
   const authUrl = client.authorizationUrl({
     redirect_uri: redirectUri,
     scope: SCOPES,
