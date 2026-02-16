@@ -5,7 +5,7 @@ export const CHROME_MAJOR_VERSION = '133';
 export const CHROME_VERSION = '133.0.6943.98';
 
 // Switch to Edge User-Agent as it matches Chromium behavior better than Firefox
-export const EDGE_UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36 Edg/133.0.0.0';
+export const EDGE_UA = `Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${CHROME_VERSION} Safari/537.36 Edg/${CHROME_VERSION}`;
 
 export function getUserAgent(): string {
   return EDGE_UA;
