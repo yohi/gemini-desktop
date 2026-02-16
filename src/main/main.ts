@@ -2,6 +2,8 @@ import { app, BrowserWindow } from 'electron';
 import path from 'path';
 import { initWindowManager } from './window-manager';
 import { registerIpcHandlers } from './ipc';
+import { getUserAgent } from './session-manager'; // Import getUserAgent
+import { initAuth, registerAuthHandlers } from './auth'; // Import auth module
 
 // Define the main window variable
 let mainWindow: BrowserWindow | null = null;
@@ -44,14 +46,21 @@ async function createWindow() {
 
 // Prevent Google from detecting the browser as automated
 app.commandLine.appendSwitch('disable-blink-features', 'AutomationControlled');
-// Improve compatibility with OAuth flows
-app.commandLine.appendSwitch('disable-features', 'CrossOriginOpenerPolicy,IsolateOrigins,site-per-process');
-app.commandLine.appendSwitch('allow-running-insecure-content');
-app.commandLine.appendSwitch('remote-debugging-port', '0');
+app.commandLine.appendSwitch('disable-site-isolation-trials');
+
+// Force User-Agent globally to prevent any leaks
+app.userAgentFallback = getUserAgent();
 
 app.whenReady().then(async () => {
+  console.log('--- MAIN PROCESS STARTED ---');
+  console.log('DIRNAME:', __dirname);
+
+  await initAuth(); // Initialize OAuth client
   registerIpcHandlers();
   await createWindow();
+  if (mainWindow) {
+    registerAuthHandlers(mainWindow); // Register auth IPC handlers
+  }
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {

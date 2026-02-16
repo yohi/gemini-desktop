@@ -13,17 +13,44 @@
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "test": "playwright test"
   },
+  "build": {
+    "appId": "com.gemini.desktop",
+    "productName": "Gemini Desktop",
+    "files": [
+      "dist/**/*",
+      "package.json"
+    ],
+    "linux": {
+      "target": [
+        "deb",
+        "AppImage"
+      ],
+      "category": "Utility",
+      "icon": "resources/icon.png"
+    },
+    "deb": {
+      "depends": [
+        "libsecret-1-0",
+        "gnome-keyring"
+      ]
+    },
+    "directories": {
+      "output": "release"
+    }
+  },
   "keywords": [
     "electron",
     "react",
     "gemini",
     "multi-user"
   ],
-  "author": "Google Jules",
+  "author": "Google Jules <jules@example.com>",
   "license": "MIT",
   "dependencies": {
     "clsx": "^2.1.1",
+    "electron-store": "^11.0.2",
     "lucide-react": "^0.563.0",
+    "openid-client": "^5.7.1",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
     "tailwind-merge": "^3.4.0",
