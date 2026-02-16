@@ -5,8 +5,10 @@ directories:
 files:
   - dist/**/*
   - package.json
+  - resources/**/*
 linux:
   target: deb
+  icon: resources/icon.png
   category: Utility
   maintainer: Google Jules
   synopsis: Multi-User Gemini Desktop App
