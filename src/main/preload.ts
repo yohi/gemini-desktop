@@ -173,6 +173,14 @@ contextBridge.exposeInMainWorld('electronAPI', {
   login: () => ipcRenderer.invoke('auth:login'),
   logout: () => ipcRenderer.invoke('auth:logout'),
   getToken: () => ipcRenderer.invoke('auth:get-token'),
-  onAuthSuccess: (callback: (data: any) => void) => ipcRenderer.on('auth:success', (_, data) => callback(data)),
-  onAuthError: (callback: (err: string) => void) => ipcRenderer.on('auth:error', (_, err) => callback(err)),
+  onAuthSuccess: (callback: (data: any) => void) => {
+    const listener = (_: any, data: any) => callback(data);
+    ipcRenderer.on('auth:success', listener);
+    return () => ipcRenderer.removeListener('auth:success', listener);
+  },
+  onAuthError: (callback: (err: string) => void) => {
+    const listener = (_: any, err: string) => callback(err);
+    ipcRenderer.on('auth:error', listener);
+    return () => ipcRenderer.removeListener('auth:error', listener);
+  },
 });

@@ -1,4 +1,4 @@
-import { BrowserWindow, WebContentsView, Session } from 'electron';
+import { BrowserWindow, WebContentsView, Session, app } from 'electron';
 import { getSession, getUserAgent } from './session-manager';
 import path from 'path'; // Import path
 
@@ -134,7 +134,9 @@ export function getOrCreateView(userId: string): WebContentsView {
   }
 
   // Load default URL
-  view.webContents.openDevTools({ mode: 'detach' });
+  if (!app.isPackaged) {
+    view.webContents.openDevTools({ mode: 'detach' });
+  }
   view.webContents.loadURL('https://gemini.google.com');
 
     views.set(userId, view);
