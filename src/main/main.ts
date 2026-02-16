@@ -19,6 +19,7 @@ async function createWindow() {
       preload: path.join(__dirname, 'preload.js'),
     },
     title: 'Gemini Desktop',
+    icon: path.join(__dirname, '../../resources/icon.png'),
     show: false,
   });
 
