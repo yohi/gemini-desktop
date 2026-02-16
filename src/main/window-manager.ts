@@ -82,9 +82,9 @@ export function getOrCreateView(userId: string): WebContentsView {
             };
             const plugins = [plugin1, plugin2];
             // Add array-like methods
-            (plugins as any).item = (index: number) => plugins[index];
-            (plugins as any).namedItem = (name: string) => plugins.find(p => p.name === name);
-            (plugins as any).refresh = () => {};
+            plugins.item = function(index) { return this[index]; };
+            plugins.namedItem = function(name) { return this.find(p => p.name === name); };
+            plugins.refresh = function() {};
             return plugins;
           },
         });
