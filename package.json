@@ -1,7 +1,7 @@
 {
   "name": "gemini-desktop-multi-user",
   "productName": "Gemini Desktop",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "Multi-User Gemini Desktop App with Session Isolation",
   "main": "dist/main/main.js",
   "scripts": {
