@@ -68,7 +68,26 @@ export function getOrCreateView(userId: string): WebContentsView {
         Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
 
         // 2. Mock plugins
-        Object.defineProperty(navigator, 'plugins', { get: () => [1, 2, 3] });
+        Object.defineProperty(navigator, 'plugins', {
+          get: () => {
+            const plugin1 = {
+              name: 'Chrome PDF Plugin',
+              filename: 'internal-pdf-viewer',
+              description: 'Portable Document Format',
+            };
+            const plugin2 = {
+              name: 'Chrome PDF Viewer',
+              filename: 'mhjfbmdgcfjbbpaeojofohoefgiehjai',
+              description: '',
+            };
+            const plugins = [plugin1, plugin2];
+            // Add array-like methods
+            (plugins as any).item = (index: number) => plugins[index];
+            (plugins as any).namedItem = (name: string) => plugins.find(p => p.name === name);
+            (plugins as any).refresh = () => {};
+            return plugins;
+          },
+        });
         
         // 3. Mock languages
         Object.defineProperty(navigator, 'languages', { get: () => ['ja', 'en-US', 'en'] });
