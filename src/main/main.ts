@@ -46,7 +46,7 @@ async function createWindow() {
 
 // Prevent Google from detecting the browser as automated
 app.commandLine.appendSwitch('disable-blink-features', 'AutomationControlled');
-app.commandLine.appendSwitch('disable-site-isolation-trials');
+// Removed disable-site-isolation-trials for security reasons
 
 // Force User-Agent globally to prevent any leaks
 app.userAgentFallback = getUserAgent();
@@ -55,7 +55,11 @@ app.whenReady().then(async () => {
   console.log('--- MAIN PROCESS STARTED ---');
   console.log('DIRNAME:', __dirname);
 
-  await initAuth(); // Initialize OAuth client
+  const authInitialized = await initAuth(); // Initialize OAuth client
+  if (!authInitialized) {
+    console.error('Failed to initialize Google Auth client. Login features will be unavailable.');
+  }
+
   registerIpcHandlers();
   await createWindow();
   if (mainWindow) {
