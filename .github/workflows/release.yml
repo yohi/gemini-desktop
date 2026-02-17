@@ -136,8 +136,20 @@ jobs:
           node-version: 20
           cache: 'npm'
 
+      - name: Install Linux Dependencies
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libsecret-1-dev libgnome-keyring-dev libnotify-bin
+
       - name: Install Dependencies
         run: npm ci
+
+      - name: Inject Google Client ID
+        env:
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+        run: |
+          sed -i "s/GOOGLE_CLIENT_ID_PLACEHOLDER/$GOOGLE_CLIENT_ID/g" src/main/auth.ts
 
       - name: Build Application
         run: npm run build
@@ -161,7 +173,7 @@ jobs:
         if: needs.prepare-release.outputs.should_release == 'true'
         with:
           name: release-artifacts-${{ matrix.os }}
-          path: dist-app/*
+          path: release/*
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
@@ -169,8 +181,8 @@ jobs:
         with:
           tag_name: ${{ needs.prepare-release.outputs.release_tag }}
           files: |
-            dist-app/*.exe
-            dist-app/*.dmg
-            dist-app/*.deb
-            dist-app/*.AppImage
-            dist-app/latest*.yml
+            release/*.exe
+            release/*.dmg
+            release/*.deb
+            release/*.AppImage
+            release/latest*.yml
