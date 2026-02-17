@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import { app, BrowserWindow } from 'electron';
 import path from 'path';
 import { initWindowManager } from './window-manager';
