@@ -52,6 +52,42 @@ export function getSession(userId: string): Session {
     callback({ requestHeaders });
   });
 
+  // Configure CSP to allow Google Tag Manager and Google Japan images
+  sess.webRequest.onHeadersReceived((details, callback) => {
+    const { responseHeaders } = details;
+    if (!responseHeaders) return callback({ cancel: false });
+
+    const cspKey = Object.keys(responseHeaders).find(k => k.toLowerCase() === 'content-security-policy');
+    const cspReportOnlyKey = Object.keys(responseHeaders).find(k => k.toLowerCase() === 'content-security-policy-report-only');
+
+    const updateCSP = (key: string) => {
+      let csp = responseHeaders[key][0];
+      
+      // Update script-src
+      if (csp.includes('script-src')) {
+        csp = csp.replace('script-src', 'script-src https://www.googletagmanager.com');
+      }
+      
+      // Update img-src
+      if (csp.includes('img-src')) {
+        // Broaden to include google.co.jp if not already covered by wildcard
+        csp = csp.replace('img-src', 'img-src https://www.google.co.jp https://*.google.com');
+      }
+
+      // Update connect-src
+      if (csp.includes('connect-src')) {
+        csp = csp.replace('connect-src', 'connect-src https://stats.g.doubleclick.net');
+      }
+
+      responseHeaders[key] = [csp];
+    };
+
+    if (cspKey) updateCSP(cspKey);
+    if (cspReportOnlyKey) updateCSP(cspReportOnlyKey);
+
+    callback({ responseHeaders });
+  });
+
   // Additional configuration (e.g., CSP, permissions) can be added here
   const allowedPermissions = ['notifications', 'media', 'fullscreen'];
 
