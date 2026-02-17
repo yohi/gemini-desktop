@@ -149,7 +149,7 @@ jobs:
         env:
           GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
         run: |
-          sed -i "s/GOOGLE_CLIENT_ID_PLACEHOLDER/$GOOGLE_CLIENT_ID/g" src/main/auth.ts
+          node -e "const fs = require('fs'); const f = 'src/main/auth.ts'; fs.writeFileSync(f, fs.readFileSync(f, 'utf8').replace(/GOOGLE_CLIENT_ID_PLACEHOLDER/g, process.env.GOOGLE_CLIENT_ID));"
 
       - name: Build Application
         run: npm run build
