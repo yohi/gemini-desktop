@@ -22,6 +22,8 @@ const store = new Store<{ tokens: Record<string, string> }>({
 let client: Client | null = null;
 let googleIssuer: Issuer<Client> | null = null;
 let codeVerifier: string | null = null;
+let state: string | null = null;
+let nonce: string | null = null;
 let server: http.Server | null = null;
 let redirectUri = 'http://127.0.0.1:3000/callback';
 
@@ -76,6 +78,8 @@ async function startLogin(mainWindow: BrowserWindow): Promise<string> {
 
   codeVerifier = generators.codeVerifier();
   const codeChallenge = generators.codeChallenge(codeVerifier);
+  state = generators.state();
+  nonce = generators.nonce();
 
   const port = await startLocalServer(mainWindow);
   
@@ -97,6 +101,8 @@ async function startLogin(mainWindow: BrowserWindow): Promise<string> {
     scope: SCOPES,
     code_challenge: codeChallenge,
     code_challenge_method: 'S256',
+    state,
+    nonce,
     access_type: 'offline',
     prompt: 'consent',
   });
@@ -139,8 +145,14 @@ function startLocalServer(mainWindow: BrowserWindow): Promise<number> {
           const params = client.callbackParams(req);
           
           if (!codeVerifier) throw new Error('Missing code_verifier');
+          if (!state) throw new Error('Missing state');
+          if (!nonce) throw new Error('Missing nonce');
 
-          const tokenSet = await client.callback(redirectUri, params, { code_verifier: codeVerifier });
+          const tokenSet = await client.callback(redirectUri, params, { 
+            code_verifier: codeVerifier,
+            state,
+            nonce,
+          });
           console.log('Token exchange successful');
 
           await saveToken(tokenSet);
@@ -189,8 +201,10 @@ function startLocalServer(mainWindow: BrowserWindow): Promise<number> {
             } else {
                 console.error('Server error:', e);
                 shutdown();
-                if (!isFallback) reject(e);
-                else mainWindow.webContents.send('auth:error', (e as Error).message);
+                if (isFallback) {
+                    mainWindow.webContents.send('auth:error', (e as Error).message);
+                }
+                reject(e);
             }
         });
 
@@ -211,8 +225,10 @@ async function saveToken(tokenSet: TokenSet) {
   if (safeStorage.isEncryptionAvailable() && tokenSet.refresh_token) {
     const encrypted = safeStorage.encryptString(tokenSet.refresh_token);
     (store as any).set('tokens.refresh_token_encrypted', encrypted.toString('hex'));
+    (store as any).delete('tokens.refresh_token_plain');
   } else if (tokenSet.refresh_token) {
     (store as any).set('tokens.refresh_token_plain', tokenSet.refresh_token);
+    (store as any).delete('tokens.refresh_token_encrypted');
   }
 }
 
