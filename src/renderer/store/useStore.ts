@@ -4,6 +4,9 @@ interface User {
   id: string;
   name: string;
   avatar?: string;
+  email?: string;
+  picture?: string;
+  isAuthenticated?: boolean;
   lastActive: number;
 }
 
@@ -16,6 +19,7 @@ interface AppState {
   setActiveUser: (id: string) => void;
   setSplitViewUser: (id: string | null) => void;
   addUser: (name: string) => Promise<void>;
+  updateUser: (id: string, updates: Partial<User>) => void;
   switchUser: (id: string) => Promise<void>;
   toggleSplit: (primaryId: string, secondaryId: string) => Promise<void>;
   removeUser: (id: string) => Promise<void>;
@@ -30,6 +34,12 @@ declare global {
       switchUser: (userId: string) => Promise<void>;
       toggleSplit: (primaryId: string, secondaryId: string) => Promise<void>;
       removeUser: (userId: string) => Promise<void>;
+      // Auth API
+      login: () => Promise<void>;
+      logout: () => Promise<void>;
+      getToken: () => Promise<string | null>;
+      onAuthSuccess: (callback: (data: any) => void) => () => void;
+      onAuthError: (callback: (err: string) => void) => () => void;
     };
   }
 }
@@ -42,6 +52,12 @@ export const useStore = create<AppState>((set, get) => ({
   setUsers: (users) => set({ users }),
   setActiveUser: (id) => set({ activeUserId: id }),
   setSplitViewUser: (id) => set({ splitViewUserId: id }),
+
+  updateUser: (id, updates) => {
+    set((state) => ({
+      users: state.users.map((u) => (u.id === id ? { ...u, ...updates } : u)),
+    }));
+  },
 
   refreshUsers: async () => {
     try {
